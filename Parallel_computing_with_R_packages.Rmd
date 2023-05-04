@@ -1,0 +1,247 @@
+---
+title: "Parallel computing with R"
+author: "Shah Nawaz"
+date: "`r Sys.Date()`"
+output: bookdown::html_document2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,eval = F)
+```
+
+Shah Nawaz: what are alternatives of apply family in parallels package
+
+Raycast AI: The `parApply()` function in the `parallels` package provides an alternative to the apply family of functions for executing parallel computations on a cluster. Other alternatives for parallel computation in R include the `foreach` package and the `doParallel` package, which allow for parallel execution of loops and functions. The `future` package provides a simple and consistent API for using futures, which are a way to evaluate expressions asynchronously, either in parallel or sequentially. Additionally, the `purrr` package provides a functional programming approach to iteration and mapping, and supports parallelization through the `future` package.
+
+Shah Nawaz: give example of these functions
+
+Raycast AI: Sure, here are some examples of how to use the functions I mentioned:
+
+#### parApply() example:
+```{r}
+library(parallel)
+
+# Create a matrix
+m <- matrix(1:20, nrow = 5)
+
+# Define a function to apply to each column of the matrix
+my_fun <- function(x) {
+  x^2
+}
+
+# Apply the function to each column of the matrix in parallel
+result <- parApply(cl = makeCluster(2), X = m, MARGIN = 2, FUN = my_fun)
+
+# View the result
+result
+```
+
+#### foreach example:
+```{r}
+library(foreach)
+library(doParallel)
+
+# Register a parallel backend
+registerDoParallel(cores = 2)
+
+# Create a list of numbers
+my_list <- list(1, 2, 3, 4, 5)
+
+# Define a function to apply to each element of the list
+my_fun <- function(x) {
+  x^2
+}
+
+# Apply the function to each element of the list in parallel
+result <- foreach(i = my_list) %dopar% my_fun(i)
+
+# View the result
+result
+```
+
+#### future example:
+```{r}
+library(future)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Create a list of numbers
+my_list <- list(1, 2, 3, 4, 5)
+
+# Define a function to apply to each element of the list
+my_fun <- function(x) {
+  x^2
+}
+
+# Apply the function to each element of the list in parallel using futures
+result <- future_map(my_list, my_fun)
+
+# View the result
+result
+```
+
+#### purrr example:
+```{r}
+library(purrr)
+library(future)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Create a list of numbers
+my_list <- list(1, 2, 3, 4, 5)
+
+# Define a function to apply to each element of the list
+my_fun <- function(x) {
+  x^2
+}
+
+# Apply the function to each element of the list in parallel using purrr
+result <- future_map(my_list, my_fun)
+
+# View the result
+result
+```
+
+Shah Nawaz: all of these packages work on both windows and mac ?
+
+Raycast AI: Yes, all of the packages I mentioned (`parallel`, `foreach`, `doParallel`, `future`, and `purrr`) are cross-platform and work on both Windows and macOS operating systems, as well as on Linux. You may need to install additional system-level dependencies for some packages to work properly, but these are typically documented in the package documentation.
+
+Shah Nawaz: what is alternative of mcapply in parallels package then for windows 
+
+Raycast AI: The `mcapply()` function is part of the `parallel` package, which provides support for parallel processing on Unix-like systems (such as Linux and macOS) but not on Windows. On Windows, you can use the `mclapply()` function instead, which is part of the same package and provides similar functionality.
+
+However, if you're looking for a package that provides cross-platform support for parallel processing, you may want to consider using one of the other packages I mentioned earlier, such as `foreach`, `doParallel`, `future`, or `purrr`. These packages provide a consistent API for parallel processing across different platforms, including Windows.
+
+Shah Nawaz: For instance we have 400 files with 15 mb size each. We want to calculate multiplication of 3 columns in all files such that values of column 1 are multiplied by column 2 and column 3. result should be saved in separate file. In the end plot the graph which has values of column 1 on x-axis and the result values on y-axis. All of this should be done by the most efficiient package described above. 
+
+Use parallel computing and vectorized function 
+
+Remember column1,2,3 are all named with nx,ny and nz and have different values in all the 400 files with identical column name
+
+Raycast AI: Here's an example of how you could use the `foreach` package with `doParallel` backend to perform the calculations in parallel and the `data.table` package to efficiently read and process the files:
+
+```{r}
+library(foreach)
+library(doParallel)
+library(data.table)
+
+# Register a parallel backend
+registerDoParallel(cores = 2)
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product <- function(file) {
+  # Read the data from the file using data.table
+  dt <- fread(file)
+  
+  # Calculate the product of columns 2 and 3
+  dt[, product := nx * ny * nz]
+  
+  # Return the result
+  return(dt)
+}
+
+# Define the list of files to process
+file_list <- paste0("file_", 1:400, ".csv")
+
+# Use foreach to process the files in parallel
+result_list <- foreach(file = file_list, .combine = rbind) %dopar% {
+  calc_product(file)
+}
+
+# Combine the results into a single data.table
+result_dt <- rbindlist(result_list)
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt <- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
+```
+
+In this example, we use `fread()` function from the `data.table` package to read the files efficiently. The `calc_product()` function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The `foreach()` function is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using `rbindlist()`, and the sum of the products is calculated for each unique value of column 1 using the `by` argument in `data.table`. Finally, we plot the results using the base R `plot()` function.
+
+Shah Nawaz: How we can do this with purr package
+
+Raycast AI: Here's an example of how you could use the `purrr` package to perform the calculations in parallel and the `data.table` package to efficiently read and process the files:
+
+```{r}
+library(purrr)
+library(future)
+library(data.table)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product <- function(file) {
+  # Read the data from the file using data.table
+  dt <- fread(file)
+  
+  # Calculate the product of columns 2 and 3
+  dt[, product := nx * ny * nz]
+  
+  # Return the result
+  return(dt)
+}
+
+# Define the list of files to process
+file_list <- paste0("file_", 1:400, ".csv")
+
+# Use purrr to process the files in parallel
+result_list <- future_map(file_list, calc_product)
+
+# Combine the results into a single data.table
+result_dt <- rbindlist(result_list)
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt <- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
+```
+
+In this example, we use `fread()` function from the `data.table` package to read the files efficiently. The `calc_product()` function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The `future_map()` function from the `purrr` package is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using `rbindlist()`, and the sum of the products is calculated for each unique value of column 1 using the `by` argument in `data.table`. Finally, we plot the results using the base R `plot()` function.
+
+Shah Nawaz: in the file_list variable we have tab delimited files which does not have .csv extension 
+
+Raycast AI: No problem, you can modify the `file_list` variable to include the full file path and extension for each file. Here's an updated example:
+
+```{r}
+library(purrr)
+library(future)
+library(data.table)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product <- function(file) {
+  # Read the data from the file using data.table
+  dt <- fread(file, sep = "\t")
+  
+  # Calculate the product of columns 2 and 3
+  dt[, product := nx * ny * nz]
+  
+  # Return the result
+  return(dt)
+}
+
+# Define the list of files to process
+file_list <- file.path("path/to/files", paste0("file_", 1:400))
+
+# Use purrr to process the files in parallel
+result_list <- future_map(file_list, calc_product)
+
+# Combine the results into a single data.table
+result_dt <- rbindlist(result_list)
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt <- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
+```
+
+In this example, we use the `file.path()` function to create the full file path for each file, and modify the `sep` argument in the `fread()` function to specify that the files are tab-delimited. The rest of the code is the same as before.
