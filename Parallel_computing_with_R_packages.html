@@ -474,7 +474,7 @@ plot_dt &lt;- result_dt[, .(sum_product = sum(product)), by = nx]
 
 # Plot the results
 plot(plot_dt$nx, plot_dt$sum_product, xlab = &quot;Column 1&quot;, ylab = &quot;Product of Columns 2 and 3&quot;)</code></pre>
-<p>In this example, we use <code>fread()</code> function from the <code>data.table</code> package to read the files efficiently. The <code>calc_product()</code> function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The <code>foreach()</code> function is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using <code>rbindlist()</code>, and the sum of the products is calculated for each unique value of column 1 using the <code>by</code> argument in <code>data.table</code>. Finally, we plot the results using the base R <code>plot()</code> function.</p>
+<p>In this example, we use <code>fread()</code> function from the <code>data.table</code> package to read the files efficiently. The <code>calc_product()</code> function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The <code>foreach()</code> function is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using <code>{r}bindlist()</code>, and the sum of the products is calculated for each unique value of column 1 using the <code>by</code> argument in <code>data.table</code>. Finally, we plot the results using the base R <code>plot()</code> function.</p>
 <p>Shah Nawaz: How we can do this with purr package</p>
 <p>Raycast AI: Here’s an example of how you could use the <code>purrr</code> package to perform the calculations in parallel and the <code>data.table</code> package to efficiently read and process the files:</p>
 <pre class="r"><code>library(purrr)
@@ -510,7 +510,7 @@ plot_dt &lt;- result_dt[, .(sum_product = sum(product)), by = nx]
 
 # Plot the results
 plot(plot_dt$nx, plot_dt$sum_product, xlab = &quot;Column 1&quot;, ylab = &quot;Product of Columns 2 and 3&quot;)</code></pre>
-<p>In this example, we use <code>fread()</code> function from the <code>data.table</code> package to read the files efficiently. The <code>calc_product()</code> function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The <code>future_map()</code> function from the <code>purrr</code> package is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using <code>rbindlist()</code>, and the sum of the products is calculated for each unique value of column 1 using the <code>by</code> argument in <code>data.table</code>. Finally, we plot the results using the base R <code>plot()</code> function.</p>
+<p>In this example, we use <code>fread()</code> function from the <code>data.table</code> package to read the files efficiently. The <code>calc_product()</code> function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The <code>future_map()</code> function from the <code>purrr</code> package is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using <code>{r}bindlist()</code>, and the sum of the products is calculated for each unique value of column 1 using the <code>by</code> argument in <code>data.table</code>. Finally, we plot the results using the base R <code>plot()</code> function.</p>
 <p>Shah Nawaz: in the file_list variable we have tab delimited files which does not have .csv extension</p>
 <p>Raycast AI: No problem, you can modify the <code>file_list</code> variable to include the full file path and extension for each file. Here’s an updated example:</p>
 <pre class="r"><code>library(purrr)
@@ -547,6 +547,79 @@ plot_dt &lt;- result_dt[, .(sum_product = sum(product)), by = nx]
 # Plot the results
 plot(plot_dt$nx, plot_dt$sum_product, xlab = &quot;Column 1&quot;, ylab = &quot;Product of Columns 2 and 3&quot;)</code></pre>
 <p>In this example, we use the <code>file.path()</code> function to create the full file path for each file, and modify the <code>sep</code> argument in the <code>fread()</code> function to specify that the files are tab-delimited. The rest of the code is the same as before.</p>
+<p>Shah Nawaz: How we can do that parquet format from arrow package since the file sizes are more than the RAM</p>
+<p>Raycast AI: To process large files that are too big to fit into memory, you can use the <code>arrow</code> package to read and write data in the Apache Parquet format. The <code>arrow</code> package provides a memory-efficient way to work with large datasets by streaming the data in and out of memory in small chunks.</p>
+<p>Here’s an example of how you could modify the previous example to read and write Parquet files using the <code>arrow</code> package:</p>
+<pre class="r"><code>library(purrr)
+library(future)
+library(arrow)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product &lt;- function(file) {
+  # Read the data from the Parquet file using arrow
+  ds &lt;- arrow::read_parquet(file)
+  
+  # Calculate the product of columns 2 and 3
+  ds$product &lt;- ds$nx * ds$ny * ds$nz
+  
+  # Write the result to a new Parquet file
+  arrow::write_parquet(ds, file.path(&quot;path/to/output&quot;, paste0(&quot;result_&quot;, basename(file))))
+}
+
+# Define the list of files to process
+file_list &lt;- file.path(&quot;path/to/files&quot;, paste0(&quot;file_&quot;, 1:400))
+
+# Use purrr to process the files in parallel
+future_map(file_list, calc_product)
+
+# Read the results from the output files into a single data.table
+result_dt &lt;- arrow::read_parquet(file.path(&quot;path/to/output&quot;), as_data_frame = TRUE)
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt &lt;- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = &quot;Column 1&quot;, ylab = &quot;Product of Columns 2 and 3&quot;)</code></pre>
+<p>In this example, we use the <code>arrow::read_parquet()</code> function to read the data from the input files, and the <code>arrow::write_parquet()</code> function to write the results to new Parquet files. The <code>as_data_frame = TRUE</code> argument in <code>arrow::read_parquet()</code> converts the result to a data.frame, which can then be combined into a single data.table using <code>{r}bindlist()</code>. The rest of the code is the same as before.</p>
+<p>Shah Nawaz: there is a open_dataset function as well. try to use that for similar process</p>
+<p>Raycast AI: Sure, you can use the <code>open_dataset()</code> function from the <code>arrow</code> package to read the Parquet files directly into an Arrow dataset, which can then be processed using the <code>purrr</code> package. Here’s an updated example:</p>
+<pre class="r"><code>library(purrr)
+library(future)
+library(arrow)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product &lt;- function(ds) {
+  # Calculate the product of columns 2 and 3
+  ds$product &lt;- ds$nx * ds$ny * ds$nz
+  
+  # Return the result
+  return(ds)
+}
+
+# Define the list of files to process
+file_list &lt;- file.path(&quot;path/to/files&quot;, paste0(&quot;file_&quot;, 1:400))
+
+# Use purrr to process the files in parallel
+result_list &lt;- future_map(file_list, ~ calc_product(arrow::open_dataset(.x)))
+
+# Combine the results into a single Arrow dataset
+result_ds &lt;- arrow::concatenate_datasets(result_list)
+
+# Convert the result to a data.frame and then to a data.table
+result_dt &lt;- as.data.table(as.data.frame(result_ds))
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt &lt;- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = &quot;Column 1&quot;, ylab = &quot;Product of Columns 2 and 3&quot;)</code></pre>
+<p>In this example, we use the <code>arrow::open_dataset()</code> function to read the Parquet files directly into an Arrow dataset, which is then processed using the <code>calc_product()</code> function. The <code>~</code> operator in <code>future_map()</code> is a shorthand for defining an anonymous function that takes a single argument. The results are combined into a single Arrow dataset using <code>arrow::concatenate_datasets()</code>. Finally, we convert the result to a data.frame and then to a data.table, and calculate the sum of the products for each unique value of column 1 as before.</p>
 </div>
 
 

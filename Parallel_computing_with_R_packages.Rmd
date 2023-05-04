@@ -160,7 +160,7 @@ plot_dt <- result_dt[, .(sum_product = sum(product)), by = nx]
 plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
 ```
 
-In this example, we use `fread()` function from the `data.table` package to read the files efficiently. The `calc_product()` function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The `foreach()` function is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using `rbindlist()`, and the sum of the products is calculated for each unique value of column 1 using the `by` argument in `data.table`. Finally, we plot the results using the base R `plot()` function.
+In this example, we use `fread()` function from the `data.table` package to read the files efficiently. The `calc_product()` function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The `foreach()` function is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using `{r}bindlist()`, and the sum of the products is calculated for each unique value of column 1 using the `by` argument in `data.table`. Finally, we plot the results using the base R `plot()` function.
 
 Shah Nawaz: How we can do this with purr package
 
@@ -202,7 +202,7 @@ plot_dt <- result_dt[, .(sum_product = sum(product)), by = nx]
 plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
 ```
 
-In this example, we use `fread()` function from the `data.table` package to read the files efficiently. The `calc_product()` function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The `future_map()` function from the `purrr` package is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using `rbindlist()`, and the sum of the products is calculated for each unique value of column 1 using the `by` argument in `data.table`. Finally, we plot the results using the base R `plot()` function.
+In this example, we use `fread()` function from the `data.table` package to read the files efficiently. The `calc_product()` function takes a file name as input, reads the data from the file, and calculates the product of columns 2 and 3. The `future_map()` function from the `purrr` package is used to process the files in parallel, with each file being processed by a separate worker. The results are combined into a single data.table using `{r}bindlist()`, and the sum of the products is calculated for each unique value of column 1 using the `by` argument in `data.table`. Finally, we plot the results using the base R `plot()` function.
 
 Shah Nawaz: in the file_list variable we have tab delimited files which does not have .csv extension 
 
@@ -245,3 +245,91 @@ plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Colu
 ```
 
 In this example, we use the `file.path()` function to create the full file path for each file, and modify the `sep` argument in the `fread()` function to specify that the files are tab-delimited. The rest of the code is the same as before.
+
+Shah Nawaz: How we can do that parquet format from arrow package since the file sizes are more than the RAM 
+
+Raycast AI: To process large files that are too big to fit into memory, you can use the `arrow` package to read and write data in the Apache Parquet format. The `arrow` package provides a memory-efficient way to work with large datasets by streaming the data in and out of memory in small chunks.
+
+Here's an example of how you could modify the previous example to read and write Parquet files using the `arrow` package:
+
+```{r}
+library(purrr)
+library(future)
+library(arrow)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product <- function(file) {
+  # Read the data from the Parquet file using arrow
+  ds <- arrow::read_parquet(file)
+  
+  # Calculate the product of columns 2 and 3
+  ds$product <- ds$nx * ds$ny * ds$nz
+  
+  # Write the result to a new Parquet file
+  arrow::write_parquet(ds, file.path("path/to/output", paste0("result_", basename(file))))
+}
+
+# Define the list of files to process
+file_list <- file.path("path/to/files", paste0("file_", 1:400))
+
+# Use purrr to process the files in parallel
+future_map(file_list, calc_product)
+
+# Read the results from the output files into a single data.table
+result_dt <- arrow::read_parquet(file.path("path/to/output"), as_data_frame = TRUE)
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt <- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
+```
+
+In this example, we use the `arrow::read_parquet()` function to read the data from the input files, and the `arrow::write_parquet()` function to write the results to new Parquet files. The `as_data_frame = TRUE` argument in `arrow::read_parquet()` converts the result to a data.frame, which can then be combined into a single data.table using `{r}bindlist()`. The rest of the code is the same as before.
+
+Shah Nawaz: there is a open_dataset function as well. try to use that for similar process
+
+Raycast AI: Sure, you can use the `open_dataset()` function from the `arrow` package to read the Parquet files directly into an Arrow dataset, which can then be processed using the `purrr` package. Here's an updated example:
+
+```{r}
+library(purrr)
+library(future)
+library(arrow)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product <- function(ds) {
+  # Calculate the product of columns 2 and 3
+  ds$product <- ds$nx * ds$ny * ds$nz
+  
+  # Return the result
+  return(ds)
+}
+
+# Define the list of files to process
+file_list <- file.path("path/to/files", paste0("file_", 1:400))
+
+# Use purrr to process the files in parallel
+result_list <- future_map(file_list, ~ calc_product(arrow::open_dataset(.x)))
+
+# Combine the results into a single Arrow dataset
+result_ds <- arrow::concatenate_datasets(result_list)
+
+# Convert the result to a data.frame and then to a data.table
+result_dt <- as.data.table(as.data.frame(result_ds))
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt <- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
+```
+
+In this example, we use the `arrow::open_dataset()` function to read the Parquet files directly into an Arrow dataset, which is then processed using the `calc_product()` function. The `~` operator in `future_map()` is a shorthand for defining an anonymous function that takes a single argument. The results are combined into a single Arrow dataset using `arrow::concatenate_datasets()`. Finally, we convert the result to a data.frame and then to a data.table, and calculate the sum of the products for each unique value of column 1 as before.
+
+
