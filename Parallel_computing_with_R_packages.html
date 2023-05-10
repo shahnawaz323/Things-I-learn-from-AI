@@ -595,6 +595,7 @@ plan(multiprocess)
 
 # Define the function to calculate the product of columns 2 and 3
 calc_product &lt;- function(ds) {
+      
   # Calculate the product of columns 2 and 3
   ds$product &lt;- ds$nx * ds$ny * ds$nz
   
@@ -603,7 +604,7 @@ calc_product &lt;- function(ds) {
 }
 
 # Define the list of files to process
-file_list &lt;- file.path(&quot;path/to/files&quot;, paste0(&quot;file_&quot;, 1:400))
+file_list &lt;- file.path(&quot;/Users/snawaz/Documents/For_Shah/3D/ShearTest-3/comf_files_step2_step3/confs&quot;, paste0(&quot;conf&quot;, 1:10))
 
 # Use purrr to process the files in parallel
 result_list &lt;- future_map(file_list, ~ calc_product(arrow::open_dataset(.x)))
@@ -620,6 +621,93 @@ plot_dt &lt;- result_dt[, .(sum_product = sum(product)), by = nx]
 # Plot the results
 plot(plot_dt$nx, plot_dt$sum_product, xlab = &quot;Column 1&quot;, ylab = &quot;Product of Columns 2 and 3&quot;)</code></pre>
 <p>In this example, we use the <code>arrow::open_dataset()</code> function to read the Parquet files directly into an Arrow dataset, which is then processed using the <code>calc_product()</code> function. The <code>~</code> operator in <code>future_map()</code> is a shorthand for defining an anonymous function that takes a single argument. The results are combined into a single Arrow dataset using <code>arrow::concatenate_datasets()</code>. Finally, we convert the result to a data.frame and then to a data.table, and calculate the sum of the products for each unique value of column 1 as before.</p>
+<p>Shah Nawaz: what if the files are not read correctly and we want to do some operations on the files before applying future_map</p>
+<p>Raycast AI: If you need to perform some operations on the files before processing them with <code>future_map()</code>, you can use the <code>map()</code> function from the <code>purrr</code> package to apply a pre-processing function to each file before passing them to <code>future_map()</code>. Here’s an example:</p>
+<pre class="r"><code>library(purrr)
+library(future)
+library(arrow)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to preprocess the files
+preprocess_file &lt;- function(file) {
+  # Read the data from the file and perform some operations
+  dt &lt;- fread(file)
+  dt[, nx := nx * 2]
+  
+  # Write the preprocessed data to a new file
+  new_file &lt;- file.path(&quot;path/to/preprocessed/files&quot;, paste0(&quot;preprocessed_&quot;, basename(file)))
+  fwrite(dt, new_file)
+  
+  # Return the path to the new file
+  return(new_file)
+}
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product &lt;- function(file) {
+  # Read the preprocessed data from the file using arrow
+  ds &lt;- arrow::read_parquet(file)
+  
+  # Calculate the product of columns 2 and 3
+  ds$product &lt;- ds$nx * ds$ny * ds$nz
+  
+  # Return the result
+  return(ds)
+}
+
+# Define the list of files to process
+file_list &lt;- file.path(&quot;path/to/files&quot;, paste0(&quot;file_&quot;, 1:400))
+
+# Use purrr to preprocess the files
+preprocessed_files &lt;- map(file_list, preprocess_file)
+
+# Use future_map to process the preprocessed files in parallel
+result_list &lt;- future_map(preprocessed_files, calc_product)
+
+# Combine the results into a single Arrow dataset
+result_ds &lt;- arrow::concatenate_datasets(result_list)
+
+# Convert the result to a data.frame and then to a data.table
+result_dt &lt;- as.data.table(as.data.frame(result_ds))
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt &lt;- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = &quot;Column 1&quot;, ylab = &quot;Product of Columns 2 and 3&quot;)</code></pre>
+<p>In this example, we use the <code>map()</code> function to preprocess each file before passing them to <code>future_map()</code>. The <code>preprocess_file()</code> function reads the data from the file, performs some operations, and writes the preprocessed data to a new file. The <code>map()</code> function applies this function to each file in <code>file_list</code> and returns a list of paths to the preprocessed files. The <code>calc_product()</code> function reads the preprocessed data from the file using <code>arrow::read_parquet()</code>, calculates the product of columns 2 and 3, and returns the result. The <code>future_map()</code> function applies this function to each preprocessed file in <code>preprocessed_files</code> in parallel. The rest of the code is the same as before.</p>
+<p>Shah Nawaz: we are planning to do operations on multiple files before future map such that files are using below code for preprocess operation</p>
+<pre><code>conf_files &lt;- mixedsort(fs::dir_ls(&quot;~/Documents/For_Shah/3D/ShearTest-1/Step2/conf/confs&quot;))
+
+confs &lt;- list()
+for (i in seq_along(conf_files)){
+
+    confs[[i]]  &lt;- vroom::vroom(conf_files[i], delim = &quot;\t&quot;, col_names = FALSE) %&gt;% data.frame(str_split_fixed(.$X1, &quot; &quot;, 23)) %&gt;% dplyr::select(-X1)</code></pre>
+<p>try to avoid for loop</p>
+<p>Raycast AI: You can use the <code>map()</code> function from the <code>purrr</code> package to apply the <code>vroom::vroom()</code> and <code>dplyr::select()</code> functions to each file in <code>conf_files</code>. Here’s an example:</p>
+<pre class="r"><code>library(purrr)
+library(vroom)
+library(dplyr)
+
+# Define the function to preprocess the files
+preprocess_file &lt;- function(file) {
+  # Read the data from the file using vroom
+  dt &lt;- vroom::vroom(file, delim = &quot;\t&quot;, col_names = FALSE)
+  
+  # Split the first column and select the remaining columns using dplyr
+  dt &lt;- dt %&gt;% data.frame(str_split_fixed(.$X1, &quot; &quot;, 23)) %&gt;% dplyr::select(-X1)
+  
+  # Return the preprocessed data
+  return(dt)
+}
+
+# Define the list of files to process
+conf_files &lt;- mixedsort(fs::dir_ls(&quot;~/Documents/For_Shah/3D/ShearTest-1/Step2/conf/confs&quot;))
+
+# Use purrr to preprocess the files
+confs &lt;- map(conf_files, preprocess_file)</code></pre>
+<p>In this example, we use the <code>map()</code> function to apply the <code>vroom::vroom()</code> and <code>dplyr::select()</code> functions to each file in <code>conf_files</code>. The <code>preprocess_file()</code> function reads the data from the file using <code>vroom::vroom()</code>, splits the first column using <code>str_split_fixed()</code>, and selects the remaining columns using <code>dplyr::select()</code>. The <code>map()</code> function applies this function to each file in <code>conf_files</code> and returns a list of preprocessed data.frames.</p>
 </div>
 
 

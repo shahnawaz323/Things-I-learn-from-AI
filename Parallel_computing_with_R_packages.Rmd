@@ -304,6 +304,7 @@ plan(multiprocess)
 
 # Define the function to calculate the product of columns 2 and 3
 calc_product <- function(ds) {
+      
   # Calculate the product of columns 2 and 3
   ds$product <- ds$nx * ds$ny * ds$nz
   
@@ -312,7 +313,7 @@ calc_product <- function(ds) {
 }
 
 # Define the list of files to process
-file_list <- file.path("path/to/files", paste0("file_", 1:400))
+file_list <- file.path("/Users/snawaz/Documents/For_Shah/3D/ShearTest-3/comf_files_step2_step3/confs", paste0("conf", 1:400))
 
 # Use purrr to process the files in parallel
 result_list <- future_map(file_list, ~ calc_product(arrow::open_dataset(.x)))
@@ -332,4 +333,239 @@ plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Colu
 
 In this example, we use the `arrow::open_dataset()` function to read the Parquet files directly into an Arrow dataset, which is then processed using the `calc_product()` function. The `~` operator in `future_map()` is a shorthand for defining an anonymous function that takes a single argument. The results are combined into a single Arrow dataset using `arrow::concatenate_datasets()`. Finally, we convert the result to a data.frame and then to a data.table, and calculate the sum of the products for each unique value of column 1 as before.
 
+Shah Nawaz: what if the files are not read correctly and we want to do some operations on the files before applying future_map
 
+Raycast AI: If you need to perform some operations on the files before processing them with `future_map()`, you can use the `map()` function from the `purrr` package to apply a pre-processing function to each file before passing them to `future_map()`. Here's an example:
+
+```{r}
+library(purrr)
+library(future)
+library(arrow)
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to preprocess the files
+preprocess_file <- function(file) {
+  # Read the data from the file and perform some operations
+  dt <- fread(file)
+  dt[, nx := nx * 2]
+  
+  # Write the preprocessed data to a new file
+  new_file <- file.path("path/to/preprocessed/files", paste0("preprocessed_", basename(file)))
+  fwrite(dt, new_file)
+  
+  # Return the path to the new file
+  return(new_file)
+}
+
+# Define the function to calculate the product of columns 2 and 3
+calc_product <- function(file) {
+  # Read the preprocessed data from the file using arrow
+  ds <- arrow::read_parquet(file)
+  
+  # Calculate the product of columns 2 and 3
+  ds$product <- ds$nx * ds$ny * ds$nz
+  
+  # Return the result
+  return(ds)
+}
+
+# Define the list of files to process
+file_list <- file.path("path/to/files", paste0("file_", 1:400))
+
+# Use purrr to preprocess the files
+preprocessed_files <- map(file_list, preprocess_file)
+
+# Use future_map to process the preprocessed files in parallel
+result_list <- future_map(preprocessed_files, calc_product)
+
+# Combine the results into a single Arrow dataset
+result_ds <- arrow::concatenate_datasets(result_list)
+
+# Convert the result to a data.frame and then to a data.table
+result_dt <- as.data.table(as.data.frame(result_ds))
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt <- result_dt[, .(sum_product = sum(product)), by = nx]
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
+```
+
+In this example, we use the `map()` function to preprocess each file before passing them to `future_map()`. The `preprocess_file()` function reads the data from the file, performs some operations, and writes the preprocessed data to a new file. The `map()` function applies this function to each file in `file_list` and returns a list of paths to the preprocessed files. The `calc_product()` function reads the preprocessed data from the file using `arrow::read_parquet()`, calculates the product of columns 2 and 3, and returns the result. The `future_map()` function applies this function to each preprocessed file in `preprocessed_files` in parallel. The rest of the code is the same as before.
+
+
+Shah Nawaz: we are planning to do operations on multiple files before future map such that files are using below code for preprocess operation
+
+```
+conf_files <- mixedsort(fs::dir_ls("~/Documents/For_Shah/3D/ShearTest-1/Step2/conf/confs"))
+
+confs <- list()
+for (i in seq_along(conf_files)){
+
+    confs[[i]]  <- vroom::vroom(conf_files[i], delim = "\t", col_names = FALSE) %>% data.frame(str_split_fixed(.$X1, " ", 23)) %>% dplyr::select(-X1)
+```
+
+try to avoid for loop
+
+Raycast AI: You can use the `map()` function from the `purrr` package to apply the `vroom::vroom()` and `dplyr::select()` functions to each file in `conf_files`. Here's an example:
+
+```{r}
+library(purrr)
+library(vroom)
+library(dplyr)
+library(gtools)
+
+# Define the function to preprocess the files
+preprocess_file <- function(file) {
+  # Read the data from the file using vroom
+  dt <- vroom::vroom(file, delim = "\t", col_names = FALSE)
+  
+  # Split the first column and select the remaining columns using dplyr
+  dt <- dt %>% data.frame(str_split_fixed(.$X1, " ", 23)) %>% dplyr::select(-X1)
+  
+  # Return the preprocessed data
+  return(dt)
+}
+
+# Define the list of files to process
+conf_files <- mixedsort(fs::dir_ls("~/Documents/For_Shah/3D/ShearTest-1/Step2/conf/confs"))
+
+# Use purrr to preprocess the files
+confs <- map(conf_files, preprocess_file)
+
+
+
+```
+
+In this example, we use the `map()` function to apply the `vroom::vroom()` and `dplyr::select()` functions to each file in `conf_files`. The `preprocess_file()` function reads the data from the file using `vroom::vroom()`, splits the first column using `str_split_fixed()`, and selects the remaining columns using `dplyr::select()`. The `map()` function applies this function to each file in `conf_files` and returns a list of preprocessed data.frames.
+
+Shah Nawaz: combine this preprocess map function with the arrow open_dataset. Right now it is taking RAM space 
+
+Raycast AI: Sure, you can modify the `preprocess_file()` function to read the data from the file using `arrow::open_dataset()` instead of `vroom::vroom()`. Here's an example:
+
+To save each file from the `confs` folder as a separate parquet file, you can modify the `arrow::write_parquet()` function to use the original file name with a ".parquet" extension instead of a fixed name like "s1.parquet". You can do this by using the `file_path_sans_ext()` function from the `fs` package to get the file path without the extension, and then appending the ".parquet" extension to it.
+
+Here's the modified code:
+
+```{r}
+library(fs)
+library(purrr)
+library(arrow)
+library(future)
+library(arrow)
+library(furrr)
+
+# set the future plan to use all available cores
+plan(multisession, workers = 4)
+
+# get a list of all the files in the folder
+conf_files <- dir_ls("~/Documents/For_Shah/3D/ShearTest-1/Step2/conf/confs")
+
+# loop through the files and process them one by one
+result_list <- map(conf_files, function(file_path) {
+  # read the file as a data frame
+  #df <- arrow::read_csv(file_path)
+  df <- arrow::read_delim_arrow(file_path, delim = "\t", skip = 55)
+  # perform some operations on the data frame
+  df <- df %>% data.frame(str_split_fixed(.$`#name group cluster homothety pos.x pos.y pos.z vel.x vel.y vel.z acc.x acc.y acc.z Q.w Q.x Q.y Q.z vrot.x vrot.y vrot.z arot.x arot.y arot.z`, " ", 23)) %>% dplyr::select(-1) %>% subset(. ,!grepl(c("x-wall|y-wall|z-wall|sphere|Interactions|Interfaces"),.$X1)) 
+  
+  # write the data frame as a parquet file
+  arrow::write_parquet(df, "s1.parquet")
+})
+
+# combine the results into a single data frame or list
+confs <- do.call(rbind, result_list)
+```
+
+Regarding the speed of this technique, writing each file as a separate parquet file can be slower than writing a single large parquet file containing all the data, especially if the files are small. However, using parallel processing with the `future` package as you are doing can help speed up the processing time, especially if you have multiple cores available.
+
+```{r}
+conf_files <- dir_ls("~/Documents/For_Shah/3D/ShearTest-1/Step2/conf/confs/r4ds")
+
+confs <- open_dataset(conf_files,delim="\t",skip=55)
+
+arrow::write_parquet(confs, "s1.parquet")
+
+arrow::read_parquet("s1.parquet",as_data_frame = FALSE) %>% 
+    data.frame(str_split_fixed(.$`#name group cluster homothety pos.x pos.y pos.z vel.x vel.y vel.z acc.x acc.y acc.z Q.w Q.x Q.y Q.z vrot.x vrot.y vrot.z arot.x arot.y arot.z`, " ", 23)) %>%  mutate_at(vars(-1),as.numeric)  %>% dplyr::select(X1)
+
+# write all file names in conf_files as separate confs using write_parquet
+
+conf_files <- dir_ls("~/Documents/For_Shah/3D/ShearTest-1/Step2/conf/confs/r4ds")
+
+conf_list <- list()
+for (file in conf_files) {
+  conf <- open_dataset(file, delim = "\t", skip = 55)
+  conf <- conf %>% 
+    data.frame(str_split_fixed(.$`#name group cluster homothety pos.x pos.y pos.z vel.x vel.y vel.z acc.x acc.y acc.z Q.w Q.x Q.y Q.z vrot.x vrot.y vrot.z arot.x arot.y arot.z`, " ", 23)) %>% 
+    dplyr::select(-1) %>% 
+    subset(!grepl(c("x-wall|y-wall|z-wall|sphere|Interactions|Interfaces"), X1))
+  conf_list[[file]] <- conf
+}
+
+```
+
+
+
+
+```{r eval=FALSE}
+conf_list <- list()
+for (file in conf_files) {
+  conf <- open_dataset(file, delim = "\t", skip = 55)
+  conf <- conf %>% 
+    data.frame(str_split_fixed(.$`#name group cluster homothety pos.x pos.y pos.z vel.x vel.y vel.z acc.x acc.y acc.z Q.w Q.x Q.y Q.z vrot.x vrot.y vrot.z arot.x arot.y arot.z`, " ", 23)) %>% 
+    dplyr::select(-1) %>% 
+    subset(!grepl(c("x-wall|y-wall|z-wall|sphere|Interactions|Interfaces"), X1))
+  conf_list[[file]] <- conf
+}
+
+```
+
+```{r}
+library(purrr)
+library(future)
+library(arrow)
+library(stringr)
+library(gtools)
+
+
+# Plan to use a parallel backend
+plan(multiprocess)
+
+# Define the function to preprocess the files
+preprocess_file <- function(file) {
+  # Read the data from the file using arrow
+  ds <- arrow::read_delim_arrow(file, delim = "\t",skip=55)
+  
+  # Split the first column and select the remaining columns using dplyr
+  dt <- ds %>% data.frame(str_split_fixed(.$`#name group cluster homothety pos.x pos.y pos.z vel.x vel.y vel.z acc.x acc.y acc.z Q.w Q.x Q.y Q.z vrot.x vrot.y vrot.z arot.x arot.y arot.z`, " ", 23)) %>% dplyr::select(-1) %>% subset(. ,!grepl(c("x-wall|y-wall|z-wall|sphere|Interactions|Interfaces"),.$X1)) 
+  
+  # Return the preprocessed data
+  return(dt)
+}
+
+# Define the list of files to process
+# conf_files <- mixedsort(fs::dir_ls("~/Documents/For_Shah/3D/ShearTest-3/comf_files_step2_step3/confs"))
+
+
+
+# Use purrr to preprocess the files
+confs <- furrr::future_map(conf_files, preprocess_file)
+
+# Combine the preprocessed data into a single Arrow dataset
+# result_table <- arrow::Table$concatenate(confs)
+result_ds <- arrow::concatenate_datasets(confs)
+
+# Calculate the product of columns 2 and 3
+result_ds$product <- result_ds$nx * result_ds$ny * result_ds$nz
+
+# Calculate the sum of the products for each unique value of column 1
+plot_dt <- as.data.table(as.data.frame(result_ds[, .(sum_product = sum(product)), by = nx]))
+
+# Plot the results
+plot(plot_dt$nx, plot_dt$sum_product, xlab = "Column 1", ylab = "Product of Columns 2 and 3")
+```
+
+In this example, we modify the `preprocess_file()` function to read the data from the file using `arrow::open_dataset()` instead of `vroom::vroom()`. The rest of the code is similar to the previous examples, except that we use `future_map()` to preprocess the files in parallel, and then combine the preprocessed data into a single Arrow dataset using `arrow::concatenate_datasets()`. We calculate the product of columns 2 and 3 directly on the Arrow dataset, and then convert the result to a data.frame and then to a data.table for plotting.
