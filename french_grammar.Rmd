@@ -1,0 +1,144 @@
+---
+author: shah nawaz
+title: French grammar book exercisdes
+date: 2023-05-11
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Book on this [link](https://drive.google.com/file/d/0B7D7CgYnYZ3SSEpVNnR1MVpVczA/edit?resourcekey=0-5y7a6r3Y5tVXYFr9ZiApnQ)
+
+From page 30 onwards
+
+Shah Nawaz: Elle (perdre) toujours ses clés.
+
+Raycast AI: Elle perd toujours ses clés.
+
+Shah Nawaz: what does it   mean en anglais
+
+Raycast AI: It means "She always loses her keys."
+
+Shah Nawaz: Il (prétendre) être le plus intelligent.
+
+Raycast AI: Il prétend être le plus intelligent.
+
+Shah Nawaz: 10. Ils (étendre) leur action à d’autres domaines.
+
+Raycast AI: Ils étendent leur action à d'autres domaines.
+
+Shah Nawaz: Faire correspondre les deux colonnes.
+1. Le chat mord a. le train
+2. Je perds toujours b. toutes sortes de marchandises
+3. Elle prétend c. au questionnaire
+4. Nous entendons d. leurs activités à l’étranger
+5. Tu attends e. mon parapluie
+6. Je réponds f. l’atmosphère
+7. Ce magasin vend g. être très riche
+8. L’étudiant rend h. la souris
+9. Ils désirent étendre i. du bruit dans la rue
+10. Son humour détend un peu j. trois livres à la bibliothèque
+
+Raycast AI: 1. Le chat mord d. la souris
+2. Je perds toujours e. mon parapluie
+3. Elle prétend g. être très riche
+4. Nous entendons h. leurs activités à l'étranger
+5. Tu attends a. le train
+6. Je réponds c. au questionnaire
+7. Ce magasin vend b. toutes sortes de marchandises
+8. L'étudiant rend j. trois livres à la bibliothèque
+9. Ils désirent étendre f. leur action à d'autres domaines
+10. Son humour détend i. du bruit dans la rue
+
+Shah Nawaz: souris?
+
+Raycast AI: "Souris" can mean either "smile" (noun) or "mouse" (noun) in French. In the context of the sentence "Le chat mord la souris", "souris" means "mouse".
+
+Shah Nawaz: parapluie
+
+Raycast AI: "Parapluie" means "umbrella" in French.
+
+Shah Nawaz: etondons
+
+Raycast AI: "Étendons" is an incorrect form of the verb "étendre" in French. The correct form in this context is "étendent", which means "extend" or "spread" in English.
+
+Shah Nawaz: rend?
+
+Raycast AI: "Rend" means "returns" in English.
+
+Shah Nawaz: etendre?
+
+Raycast AI: "Étendre" means "to extend" or "to spread" in English.
+
+Shah Nawaz: 1. Nous (prendre) le petit déjeuner à huit heures.
+2. Il (entreprendre) toujours des choses dangereuses.
+3. Je (apprendre) l’allemand.
+4. Vous (comprendre) son hésitation.
+5. Ils (apprendre) à conduire.
+6. Il (surprendre) le secret.
+7. Vous (prendre) de longues vacances.
+8. Nous (comprendre) le chinois.
+9. Tu (prendre) une autre direction.
+10. Elle (comprendre) tout.
+
+Raycast AI: 1. Nous prenons le petit déjeuner à huit heures.
+2. Il entreprend toujours des choses dangereuses.
+3. Je apprends l'allemand.
+4. Vous comprenez son hésitation.
+5. Ils apprennent à conduire.
+6. Il surprend le secret.
+7. Vous prenez de longues vacances.
+8. Nous comprenons le chinois.
+9. Tu prends une autre direction.
+10. Elle comprend tout.
+
+Shah Nawaz: conduire
+
+Raycast AI: "Conduire" means "to drive" in English.
+
+Shah Nawaz: surprend
+
+Raycast AI: "Surprend" is a conjugated form of the verb "surprendre" which means "to surprise" in English.
+
+Shah Nawaz: He is learning Chinese.
+
+Raycast AI: Il apprend le chinois.
+
+Shah Nawaz: She takes the subway every day.
+
+Raycast AI: Elle prend le métro tous les jours.
+
+Shah Nawaz: He often loses his keys.
+
+Raycast AI: Il perd souvent ses clés.
+
+Shah Nawaz: I can hear Pierre on the street.
+
+Raycast AI: Je peux entendre Pierre dans la rue.
+
+Shah Nawaz: He claims to be the king’s brother.
+
+Raycast AI: Il prétend être le frère du roi.
+
+Shah Nawaz: You answer quickly.
+
+Raycast AI: Vous répondez rapidement.
+
+Shah Nawaz: She sells fl owers.
+
+Raycast AI: Elle vend des fleurs.
+
+Shah Nawaz: We go down the Champs-Élysées.
+
+Raycast AI: Nous descendons les Champs-Élysées.
+
+Shah Nawaz: I am going down.
+
+Raycast AI: Je descends.
+
+Shah Nawaz: We are waiting for an answer.
+
+Raycast AI: Nous attendons une réponse.
