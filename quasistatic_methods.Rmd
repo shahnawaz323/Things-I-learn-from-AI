@@ -1,17 +1,33 @@
 ---
-author: shah nawaz
+author:
+  - first_name: "shah"
+    last_name: "nawaz"
+    url: https://github.com/shahnawaz323
+    affiliation: Universite Grenoble Alpes
+    affiliation_url: https://3sr.univ-grenoble-alpes.fr/en/membre/shah-nawaz
+    orcid_id: 0000-0002-0571-1827
+citation_url: https://github.com/shahnawaz323/Things-I-learn-from-AI
 title: Quasistatic methods in dem
-date: 2021-06-17
-output: distill::distill_article
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:  
+  distill::distill_article:
+      toc: true
+      toc_depth: 2
+      code_folding: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = TRUE,
+  message = TRUE,
+  comment = "##",
+  R.options = list(width = 60)
+)
 ```
-
 Shah Nawaz: whaaat is rigid body in discrete element modelling
 
-Raycast AI: In discrete element modelling, a rigid body refers to an object that maintains its shape and size throughout a simulation, and its motion is governed by the laws of physics such as Newton's laws of motion. Rigid bodies are often used to model solid objects in simulations involving granular materials, powders, or other types of discrete particles. These simulations can be used to study the behavior of materials under different conditions, such as during manufacturing processes or in natural phenomena like landslides or avalanches.
+Raycast AI: In discrete element modelling, a rigid body refers to an object that maintains its shape and size throughout a simulation, and its motion is governed by the laws of physics such as Newtons laws of motion. Rigid bodies are often used to model solid objects in simulations involving granular materials, powders, or other types of discrete particles. These simulations can be used to study the behavior of materials under different conditions, such as during manufacturing processes or in natural phenomena like landslides or avalanches.
 
 Shah Nawaz: what is inertia
 
